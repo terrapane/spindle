@@ -1,0 +1,2 @@
+add_subdirectory(standard_resolution)
+add_subdirectory(high_resolution)
