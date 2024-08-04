@@ -236,7 +236,7 @@ TimerID Timer::Start(const TimerEntryPoint &entry_point,
                      const std::chrono::nanoseconds &delay,
                      const std::chrono::nanoseconds &interval,
                      const bool rigid_interval,
-                      const ThreadControlPointer thread_control)
+                     ThreadControlPointer thread_control)
 {
     TimerID iterations = 0;
 
@@ -270,7 +270,8 @@ TimerID Timer::Start(const TimerEntryPoint &entry_point,
         interval,
         rigid_interval,
         entry_point,
-        thread_control ? thread_control : std::make_shared<ThreadControl>()
+        thread_control ? std::move(thread_control) :
+                         std::make_shared<ThreadControl>()
     };
 
     // Put the new timer in the pending timer list
@@ -550,7 +551,7 @@ void Timer::ServiceLoop()
                     wait_time,
                     [&]()
                     {
-                        return (terminate == true) || pending_list.empty() ||
+                        return terminate || pending_list.empty() ||
                                (pending_list.front().timer_id != timer_id);
                     });
             }
@@ -607,7 +608,7 @@ void Timer::ServiceLoop()
         // Remove the timer from the running timers list, if it still exists
         // (it may have been removed via a call to Stop())
         if (RemoveTimer(current_timer.timer_id) &&
-            (current_timer.timer_control->IsHalted() == false))
+            (!current_timer.timer_control->IsHalted()))
         {
             // Check to see if this current timer is a recurring timer
             if (current_timer.interval != std::chrono::nanoseconds::zero())

@@ -53,6 +53,11 @@
  *      timer, it may be best to perform test using the Timer object to see
  *      how well it meets your needs.
  *
+ *      Note that it is incumbent on the caller to ensure that calls to
+ *      TimerEntryPoint functions do not throw an exception.  Errors should
+ *      be caught and handled by that function.  If an exception is thrown, it
+ *      will be caught and silently ignored by the Timer object.
+ *
  *  Portability Issues:
  *      None.
  */
@@ -95,13 +100,13 @@ class Timer
     public:
         Timer(const ThreadPoolPointer &thread_pool = {},
               bool high_resolution = false);
-        ~Timer();
+        virtual ~Timer();
 
         TimerID Start(const TimerEntryPoint &entry_point,
                       const std::chrono::nanoseconds &delay,
                       const std::chrono::nanoseconds &interval = {},
                       const bool rigid_interval = true,
-                      const ThreadControlPointer thread_control = {});
+                      ThreadControlPointer thread_control = {});
 
         // Used with std::chrono::seconds, milliseconds, etc
         template<typename T, typename U>
@@ -109,13 +114,13 @@ class Timer
                       const std::chrono::duration<T, U> &delay,
                       const std::chrono::duration<T, U> &interval = {},
                       const bool rigid_interval = true,
-                      const ThreadControlPointer thread_control = {})
+                      ThreadControlPointer thread_control = {})
         {
             return Start(entry_point,
                          std::chrono::nanoseconds(delay),
                          std::chrono::nanoseconds(interval),
                          rigid_interval,
-                         thread_control);
+                         std::move(thread_control));
         }
 
         void Stop(TimerID timer_id);

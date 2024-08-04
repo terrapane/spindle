@@ -93,7 +93,7 @@ bool ThreadControl::BeginWork()
     running_threads++;
 
     // If the object is not in a halted state, return true
-    if (halted == false) return true;
+    if (!halted.load()) return true;
 
     // In halted state, notify waiting threads if are no more threads running
     if (--running_threads == 0) NotifyThreads();
@@ -125,7 +125,7 @@ void ThreadControl::FinishWork()
     running_threads--;
 
     // Notify waiting threads that there are no more threads running
-    if ((halted == true) && (running_threads == 0)) NotifyThreads();
+    if ((halted.load()) && (running_threads == 0)) NotifyThreads();
 }
 
 /*
@@ -165,7 +165,7 @@ void ThreadControl::Halt()
 
         // Wait for running threads to complete or for Resume() to be called
         cv.wait(lock,
-                [&](){ return (running_threads == 0) || (halted == false); });
+                [&]() { return (running_threads == 0) || (!halted.load()); });
     }
 }
 
@@ -213,7 +213,7 @@ void ThreadControl::Halt(std::unique_lock<std::mutex> &foreign_lock)
 
         // Wait for running threads to complete or for Resume() to be called
         cv.wait(lock,
-                [&](){ return (running_threads == 0) || (halted == false); });
+                [&]() { return (running_threads == 0) || (!halted.load()); });
 
         // Re-lock the mutex provided by the caller
         foreign_lock.lock();

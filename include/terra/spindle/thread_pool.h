@@ -60,6 +60,9 @@
 namespace Terra::Spindle
 {
 
+// Thread entry point function definition
+using ThreadEntryPoint = std::function<void()>;
+
 // Define the ThreadPool class
 class ThreadPool
 {
@@ -67,10 +70,10 @@ class ThreadPool
         static constexpr std::size_t Default_Thread_Count{5};
 
         ThreadPool(std::size_t thread_count = Default_Thread_Count);
-        ~ThreadPool();
+        virtual ~ThreadPool();
 
         bool Invoke(const ThreadControlPointer &thread_control,
-                    const std::function<void()> &entry_point);
+                    const ThreadEntryPoint &entry_point);
 
         std::size_t ThreadCount();
         std::size_t Invoked();
@@ -80,7 +83,7 @@ class ThreadPool
         void Loop();
 
         using InvocationList =
-            std::deque<std::tuple<ThreadControlPointer, std::function<void()>>>;
+            std::deque<std::tuple<ThreadControlPointer, ThreadEntryPoint>>;
 
         bool terminate;                         // Terminate threads?
         std::size_t invoked;                    // Threads currently invoked

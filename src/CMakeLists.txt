@@ -22,7 +22,17 @@ set_target_properties(spindle
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF)
 
-# Use the following compile options; always optimize for speed
+# If requesting clang-tidy, try to look for it
+if(spindle_CLANG_TIDY)
+    find_program(CLANG_TIDY_COMMAND NAMES "clang-tidy")
+    if(CLANG_TIDY_COMMAND)
+        set_target_properties(spindle PROPERTIES CXX_CLANG_TIDY "${CLANG_TIDY_COMMAND}")
+    else()
+        message(WARNING "Could not find clang-tidy")
+    endif()
+endif()
+
+# Use the following compile options
 target_compile_options(spindle
     PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>: -Wpedantic -Wextra -Wall>

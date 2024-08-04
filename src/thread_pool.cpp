@@ -118,7 +118,7 @@ ThreadPool::~ThreadPool()
  *      None.
  */
 bool ThreadPool::Invoke(const ThreadControlPointer &thread_control,
-                        const std::function<void()> &entry_point)
+                        const ThreadEntryPoint &entry_point)
 {
     // Ensure the function is callable
     if (!entry_point) return false;
