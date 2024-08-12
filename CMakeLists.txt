@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.21)
 # Define the Spindle project
 project(spindle
         VERSION 1.0.0.0
-        DESCRIPTION "Utility Library for Multi-Threaded Applications"
+        DESCRIPTION "Spindle: Library for Multi-Threaded Applications"
         LANGUAGES CXX)
 
 # Set options depending on whether this is a subproject

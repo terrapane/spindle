@@ -12,7 +12,7 @@ if(spindle_BUILD_TESTS)
     # Fetch the Simple Test Framework library
     FetchContent_Declare(stf
         GIT_REPOSITORY ${TERRAPANE_SOURCE_URI}/stf.git
-        GIT_TAG        master
+        GIT_TAG        v1.0.0
         GIT_SHALLOW    true)
 
     # It is not necessary to install the STF library
