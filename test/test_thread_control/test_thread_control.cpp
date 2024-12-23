@@ -35,7 +35,7 @@ void ThreadFunc(ThreadControlPointer &thread_control,
 
     if (!result) return;
 
-    while (released == false)
+    while (released.load() == false)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
@@ -63,7 +63,7 @@ void HaltFuncHelper(ThreadControlPointer &thread_control,
     thread_control->Halt();
 
     // Signal that halting finished
-    halted = true;
+    halted.store(true);
 }
 
 STF_TEST(ThreadControl, Initialize)
@@ -122,7 +122,7 @@ STF_TEST(ThreadControl, SpawnThreads)
     }
 
     // Wait until all threads report in
-    while (fully_launched < 10)
+    while (fully_launched.load() < 10)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -131,7 +131,7 @@ STF_TEST(ThreadControl, SpawnThreads)
     STF_ASSERT_EQ(10, thread_control->RunningThreads());
 
     // Allow threads to end
-    released = true;
+    released.store(true);
 
     // Wait for all threads to end
     for (auto &thread : threads) thread.join();
@@ -170,7 +170,7 @@ STF_TEST(ThreadControl, BlockOnHalt)
 
     // Wait for the halting thread to do its job
     unsigned counter = 0;
-    while(halted == false)
+    while (halted.load() == false)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 

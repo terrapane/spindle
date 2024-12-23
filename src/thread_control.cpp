@@ -121,11 +121,8 @@ bool ThreadControl::BeginWork()
  */
 void ThreadControl::FinishWork()
 {
-    // Indicate that the thread is no longer running
-    running_threads--;
-
-    // Notify waiting threads that there are no more threads running
-    if ((halted.load()) && (running_threads == 0)) NotifyThreads();
+    // Indicate that the thread is no longer running; notify if halted on last
+    if ((--running_threads == 0) && (halted.load() == true)) NotifyThreads();
 }
 
 /*
@@ -155,17 +152,21 @@ void ThreadControl::FinishWork()
 void ThreadControl::Halt()
 {
     // Indicate that the ThreadControl is in the halted state
-    halted = true;
+    halted.store(true);
 
     // If there are running threads, wait for those to complete
-    if (running_threads > 0)
+    if (running_threads.load() > 0)
     {
         // Lock the mutex
         std::unique_lock<std::mutex> lock(thread_control_mutex);
 
         // Wait for running threads to complete or for Resume() to be called
         cv.wait(lock,
-                [&]() { return (running_threads == 0) || (!halted.load()); });
+                [&]()
+                {
+                    return (running_threads.load() == 0) ||
+                           (halted.load() == false);
+                });
     }
 }
 
@@ -200,10 +201,10 @@ void ThreadControl::Halt()
 void ThreadControl::Halt(std::unique_lock<std::mutex> &foreign_lock)
 {
     // Indicate that the ThreadControl is in the halted state
-    halted = true;
+    halted.store(true);
 
     // If there are running threads, wait for those to complete
-    if (running_threads > 0)
+    if (running_threads.load() > 0)
     {
         // Unlock the mutex provided by the caller
         foreign_lock.unlock();
@@ -213,7 +214,11 @@ void ThreadControl::Halt(std::unique_lock<std::mutex> &foreign_lock)
 
         // Wait for running threads to complete or for Resume() to be called
         cv.wait(lock,
-                [&]() { return (running_threads == 0) || (!halted.load()); });
+                [&]()
+                {
+                    return (running_threads.load() == 0) ||
+                           (halted.load() == false);
+                });
 
         // Re-lock the mutex provided by the caller
         foreign_lock.lock();
@@ -247,7 +252,7 @@ void ThreadControl::Halt(std::unique_lock<std::mutex> &foreign_lock)
 void ThreadControl::Resume()
 {
     // Take the object out of the halted state
-    halted = false;
+    halted.store(false);
 
     // Notify any waiting threads to awaken
     NotifyThreads();
@@ -271,7 +276,7 @@ void ThreadControl::Resume()
  */
 bool ThreadControl::IsHalted()
 {
-    return halted;
+    return halted.load();
 }
 
 /*
@@ -292,7 +297,7 @@ bool ThreadControl::IsHalted()
  */
 std::size_t ThreadControl::RunningThreads()
 {
-    return running_threads;
+    return running_threads.load();
 }
 
 /*

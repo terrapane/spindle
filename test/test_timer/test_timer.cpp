@@ -82,10 +82,10 @@ struct TestObject
         thread_ids[thread]++;
 
         // Cause the timer to block if block_thread is true
-        cv.wait(lock, [&]() { return block_thread == false; });
+        cv.wait(lock, [&]() { return block_thread.load() == false; });
 
         // Should the next call to this function block?
-        block_thread = bool(auto_block_thread);
+        block_thread.store(auto_block_thread.load());
     }
 };
 

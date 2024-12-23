@@ -41,13 +41,13 @@ class ThreadControl
         void Halt(std::unique_lock<std::mutex> &foreign_lock);
         void Resume();
         bool IsHalted();
-        std::uint64_t RunningThreads();
+        std::size_t RunningThreads();
 
     protected:
         void NotifyThreads();
 
         // Count of running threads
-        std::atomic<std::uint64_t> running_threads;
+        std::atomic<std::size_t> running_threads;
 
         // True is the object is in a halted state
         std::atomic<bool> halted;

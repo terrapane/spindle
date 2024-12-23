@@ -33,7 +33,7 @@ struct TestObject
 {
     void Entry(int argument)
     {
-        value = argument;
+        value.store(argument);
         counter++;
     }
 
@@ -45,10 +45,10 @@ struct SecondTestObject
 {
     void Entry(int argument)
     {
-        value = argument;
+        value.store(argument);
         counter++;
         std::unique_lock<std::mutex> lock(test_mutex);
-        cv.wait(lock, [&]() { return released == true; });
+        cv.wait(lock, [&]() { return released.load() == true; });
     }
 
     std::atomic<int> value{};
@@ -92,7 +92,7 @@ STF_TEST(ThreadPool, VerifyArgument)
     thread_pool.Invoke(thread_control, [&, value]() { object.Entry(value); });
 
     unsigned iterations = 0;
-    while (object.counter < 1)
+    while (object.counter.load() < 1)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -110,7 +110,7 @@ STF_TEST(ThreadPool, VerifyArgument)
     STF_ASSERT_EQ(1, thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value);
+    STF_ASSERT_EQ(value, object.value.load());
 }
 
 STF_TEST(ThreadPool, ManyInvocations)
@@ -131,7 +131,7 @@ STF_TEST(ThreadPool, ManyInvocations)
     }
 
     unsigned iterations = 0;
-    while (object.counter < total_invokes)
+    while (object.counter.load() < total_invokes)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -149,7 +149,7 @@ STF_TEST(ThreadPool, ManyInvocations)
     STF_ASSERT_EQ(total_invokes, thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value);
+    STF_ASSERT_EQ(value, object.value.load());
 }
 
 STF_TEST(ThreadPool, VerifyQueuedInvocations)
@@ -170,7 +170,7 @@ STF_TEST(ThreadPool, VerifyQueuedInvocations)
     }
 
     unsigned iterations = 0;
-    while (object.counter < ThreadPool::Default_Thread_Count)
+    while (object.counter.load() < ThreadPool::Default_Thread_Count)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -184,12 +184,12 @@ STF_TEST(ThreadPool, VerifyQueuedInvocations)
                   thread_pool.TotalInvocations());
 
     // Release the threads
-    object.released = true;
+    object.released.store(true);
     object.cv.notify_all();
 
     // Wait for the rest to complete
     iterations = 0;
-    while (object.counter < total_invokes)
+    while (object.counter.load() < total_invokes)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -207,7 +207,7 @@ STF_TEST(ThreadPool, VerifyQueuedInvocations)
     STF_ASSERT_EQ(total_invokes, thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value);
+    STF_ASSERT_EQ(value, object.value.load());
 }
 
 STF_TEST(ThreadPool, HaltInvocations)
@@ -228,7 +228,7 @@ STF_TEST(ThreadPool, HaltInvocations)
     }
 
     unsigned iterations = 0;
-    while (object.counter < ThreadPool::Default_Thread_Count)
+    while (object.counter.load() < ThreadPool::Default_Thread_Count)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -271,7 +271,7 @@ STF_TEST(ThreadPool, HaltInvocations)
                   thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value);
+    STF_ASSERT_EQ(value, object.value.load());
 }
 
 STF_TEST(ThreadPool, NoThreadControl)
@@ -283,7 +283,7 @@ STF_TEST(ThreadPool, NoThreadControl)
     thread_pool->Invoke(nullptr, [&, value]() { object.Entry(value); });
 
     unsigned iterations = 0;
-    while (object.counter < 1)
+    while (object.counter.load() < 1)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -295,5 +295,5 @@ STF_TEST(ThreadPool, NoThreadControl)
     thread_pool.reset();
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value);
+    STF_ASSERT_EQ(value, object.value.load());
 }
