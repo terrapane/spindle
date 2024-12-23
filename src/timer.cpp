@@ -829,8 +829,11 @@ bool Timer::TestHighAccuracy()
             if ((delta.count() > 9900) && (delta.count() < 10100)) good++;
 
             // After 6 iterations, awaken the waiting thread
-            if (ticks >= 6) test_cv.notify_one();
-
+            if (ticks >= 6)
+            {
+                std::lock_guard<std::mutex> lock(test_mutex);
+                test_cv.notify_one();
+            }
         },
         std::chrono::microseconds(0),
         std::chrono::microseconds(10'000));

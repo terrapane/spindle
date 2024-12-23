@@ -79,11 +79,11 @@ ThreadPool::~ThreadPool()
     // Indicate that awoken threads should terminate
     terminate = true;
 
-    // Unlock the mutex
-    lock.unlock();
-
     // Have all the threads wake up
     cv.notify_all();
+
+    // Unlock the mutex
+    lock.unlock();
 
     // Wait for the threads to terminate
     for (auto &thread : threads) thread.join();

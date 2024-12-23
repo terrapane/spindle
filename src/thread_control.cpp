@@ -182,7 +182,7 @@ void ThreadControl::Halt()
  *      the control of this class.
  *
  *  Parameters:
- *      caller_lock [in]
+ *      foreign_lock [in]
  *          This is a reference to a unique_lock held by the caller that
  *          should be unlocked if and only if this function must block in
  *          order to wait on on a thread to complete.  This lock will not

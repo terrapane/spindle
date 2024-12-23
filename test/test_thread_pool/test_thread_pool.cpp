@@ -31,31 +31,49 @@ using namespace Terra::Spindle;
 
 struct TestObject
 {
-    void Entry(int argument)
-    {
-        value.store(argument);
-        counter++;
-    }
+    public:
+        TestObject() = default;
+        ~TestObject() = default;
+        void Entry(int argument)
+        {
+            value.store(argument);
+            counter++;
+        }
+        unsigned GetCounter() { return counter.load(); }
+        int GetValue() { return value.load(); }
 
-    std::atomic<int> value{};
-    std::atomic<unsigned> counter{0};
+    private:
+        std::atomic<int> value{};
+        std::atomic<unsigned> counter{0};
 };
 
-struct SecondTestObject
+class SecondTestObject
 {
-    void Entry(int argument)
-    {
-        value.store(argument);
-        counter++;
-        std::unique_lock<std::mutex> lock(test_mutex);
-        cv.wait(lock, [&]() { return released.load() == true; });
-    }
+    public:
+        SecondTestObject() = default;
+        ~SecondTestObject() = default;
+        void Entry(int argument)
+        {
+            value.store(argument);
+            counter++;
+            std::unique_lock<std::mutex> lock(test_mutex);
+            cv.wait(lock, [&]() { return released.load() == true; });
+        }
+        void Release()
+        {
+            std::lock_guard<std::mutex> lock(test_mutex);
+            released.store(true);
+            cv.notify_all();
+        }
+        unsigned GetCounter() { return counter.load(); }
+        int GetValue() { return value.load(); }
 
-    std::atomic<int> value{};
-    std::atomic<unsigned> counter{0};
-    std::atomic<bool> released{false};
-    std::mutex test_mutex;
-    std::condition_variable cv;
+    private:
+        std::atomic<int> value{};
+        std::atomic<unsigned> counter{0};
+        std::atomic<bool> released{false};
+        std::mutex test_mutex;
+        std::condition_variable cv;
 };
 
 void HaltFuncHelper(ThreadControlPointer &thread_control)
@@ -92,7 +110,7 @@ STF_TEST(ThreadPool, VerifyArgument)
     thread_pool.Invoke(thread_control, [&, value]() { object.Entry(value); });
 
     unsigned iterations = 0;
-    while (object.counter.load() < 1)
+    while (object.GetCounter() < 1)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -110,7 +128,7 @@ STF_TEST(ThreadPool, VerifyArgument)
     STF_ASSERT_EQ(1, thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value.load());
+    STF_ASSERT_EQ(value, object.GetValue());
 }
 
 STF_TEST(ThreadPool, ManyInvocations)
@@ -131,7 +149,7 @@ STF_TEST(ThreadPool, ManyInvocations)
     }
 
     unsigned iterations = 0;
-    while (object.counter.load() < total_invokes)
+    while (object.GetCounter() < total_invokes)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -149,7 +167,7 @@ STF_TEST(ThreadPool, ManyInvocations)
     STF_ASSERT_EQ(total_invokes, thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value.load());
+    STF_ASSERT_EQ(value, object.GetValue());
 }
 
 STF_TEST(ThreadPool, VerifyQueuedInvocations)
@@ -170,7 +188,7 @@ STF_TEST(ThreadPool, VerifyQueuedInvocations)
     }
 
     unsigned iterations = 0;
-    while (object.counter.load() < ThreadPool::Default_Thread_Count)
+    while (object.GetCounter() < ThreadPool::Default_Thread_Count)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -184,12 +202,11 @@ STF_TEST(ThreadPool, VerifyQueuedInvocations)
                   thread_pool.TotalInvocations());
 
     // Release the threads
-    object.released.store(true);
-    object.cv.notify_all();
+    object.Release();
 
     // Wait for the rest to complete
     iterations = 0;
-    while (object.counter.load() < total_invokes)
+    while (object.GetCounter() < total_invokes)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -207,7 +224,7 @@ STF_TEST(ThreadPool, VerifyQueuedInvocations)
     STF_ASSERT_EQ(total_invokes, thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value.load());
+    STF_ASSERT_EQ(value, object.GetValue());
 }
 
 STF_TEST(ThreadPool, HaltInvocations)
@@ -228,7 +245,7 @@ STF_TEST(ThreadPool, HaltInvocations)
     }
 
     unsigned iterations = 0;
-    while (object.counter.load() < ThreadPool::Default_Thread_Count)
+    while (object.GetCounter() < ThreadPool::Default_Thread_Count)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -257,8 +274,7 @@ STF_TEST(ThreadPool, HaltInvocations)
     }
 
     // Release the running threads
-    object.released = true;
-    object.cv.notify_all();
+    object.Release();
 
     // Wait for the halting thread to return
     halt_thread.join();
@@ -271,7 +287,7 @@ STF_TEST(ThreadPool, HaltInvocations)
                   thread_pool.TotalInvocations());
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value.load());
+    STF_ASSERT_EQ(value, object.GetValue());
 }
 
 STF_TEST(ThreadPool, NoThreadControl)
@@ -283,7 +299,7 @@ STF_TEST(ThreadPool, NoThreadControl)
     thread_pool->Invoke(nullptr, [&, value]() { object.Entry(value); });
 
     unsigned iterations = 0;
-    while (object.counter.load() < 1)
+    while (object.GetCounter() < 1)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -295,5 +311,5 @@ STF_TEST(ThreadPool, NoThreadControl)
     thread_pool.reset();
 
     // Check that the test object value was updated
-    STF_ASSERT_EQ(value, object.value.load());
+    STF_ASSERT_EQ(value, object.GetValue());
 }

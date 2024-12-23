@@ -53,40 +53,78 @@ class Timer_ : public Timer
         using Timer::Default_Thread_Pool_Size;
 };
 
-struct TestObject
+class TestObject
 {
-    std::atomic<unsigned> timer_fired{0};
-    std::mutex test_mutex;
-    std::atomic<bool> block_thread{true};
-    std::atomic<bool> auto_block_thread{true};
-    std::condition_variable cv;
-    std::map<TimerID, unsigned> timer_counts;
-    std::map<std::thread::id, unsigned> thread_ids;
-    unsigned thread_pause_time{0};
-
-    void TestTimerFunc(TimerID timer_id)
-    {
-        // Sleep for the specified time
-        if (thread_pause_time > 0)
+    public:
+        TestObject() = default;
+        ~TestObject() = default;
+        void TestTimerFunc(TimerID timer_id)
         {
-            std::this_thread::sleep_for(
-                std::chrono::microseconds(thread_pause_time));
+            // Sleep for the specified time
+            if (thread_pause_time > 0)
+            {
+                std::this_thread::sleep_for(
+                    std::chrono::microseconds(thread_pause_time));
+            }
+
+            std::unique_lock<std::mutex> lock(test_mutex);
+
+            // Update timer firing data
+            timer_fired++;
+            timer_counts[timer_id]++;
+            std::thread::id thread = std::this_thread::get_id();
+            thread_ids[thread]++;
+
+            // Cause the timer to block if block_thread is true
+            cv.wait(lock, [&]() { return block_thread.load() == false; });
+
+            // Should the next call to this function block?
+            block_thread.store(auto_block_thread.load());
+        }
+        unsigned TimerFired() { return timer_fired.load(); }
+        void UnblockThread()
+        {
+            std::lock_guard<std::mutex> lock(test_mutex);
+            block_thread.store(false);
+            cv.notify_one();
+        }
+        void DisableAutoBlock() { auto_block_thread.store(false); }
+        void UnblockAllThreads()
+        {
+            std::lock_guard<std::mutex> lock(test_mutex);
+            block_thread.store(false);
+            cv.notify_all();
+        }
+        unsigned GetTimerCount(TimerID id)
+        {
+            std::lock_guard<std::mutex> lock(test_mutex);
+            return timer_counts[id];
+        }
+        void SetPauseTime(unsigned time)
+        {
+            std::lock_guard<std::mutex> lock(test_mutex);
+            thread_pause_time = time;
+        }
+        std::size_t GetThreadUsedCount()
+        {
+            std::lock_guard<std::mutex> lock(test_mutex);
+            return thread_ids.size();
+        }
+        std::size_t GetNumberOfTimers()
+        {
+            std::lock_guard<std::mutex> lock(test_mutex);
+            return timer_counts.size();
         }
 
-        std::unique_lock<std::mutex> lock(test_mutex);
-
-        // Update timer firing data
-        timer_fired++;
-        timer_counts[timer_id]++;
-        std::thread::id thread = std::this_thread::get_id();
-        thread_ids[thread]++;
-
-        // Cause the timer to block if block_thread is true
-        cv.wait(lock, [&]() { return block_thread.load() == false; });
-
-        // Should the next call to this function block?
-        block_thread.store(auto_block_thread.load());
-    }
+    private:
+        std::atomic<unsigned> timer_fired{0};
+        std::mutex test_mutex;
+        std::atomic<bool> block_thread{true};
+        std::atomic<bool> auto_block_thread{true};
+        std::condition_variable cv;
+        std::map<TimerID, unsigned> timer_counts;
+        std::map<std::thread::id, unsigned> thread_ids;
+        unsigned thread_pause_time{0};
 };
 
 STF_TEST(Timer, DefaultConstructor)
@@ -119,7 +157,7 @@ STF_TEST(Timer, StartAndStop1)
     timer.Stop(timer_id);
 
     // Ensure the timer actually did not fire
-    STF_ASSERT_EQ(0, object.timer_fired);
+    STF_ASSERT_EQ(0, object.TimerFired());
 
     // Check the number of pending and running timers is zero
     STF_ASSERT_EQ(0, timer.GetPendingTimerCount());
@@ -150,7 +188,7 @@ STF_TEST(Timer, StartAndStop2)
     timer.Stop(timer_id);
 
     // Ensure the timer actually did not fire
-    STF_ASSERT_EQ(0, object.timer_fired);
+    STF_ASSERT_EQ(0, object.TimerFired());
 
     // Check the number of pending and running timers is zero
     STF_ASSERT_EQ(0, timer.GetPendingTimerCount());
@@ -173,7 +211,7 @@ STF_TEST(Timer, SingleTimer)
 
     // Wait for the timer to fire
     unsigned iterations = 0;
-    while(object.timer_fired < 1)
+    while(object.TimerFired() < 1)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
@@ -188,14 +226,13 @@ STF_TEST(Timer, SingleTimer)
     STF_ASSERT_EQ(1, timer.GetRunningTimerCount());
 
     // Release the timer thread
-    object.block_thread = false;
-    object.cv.notify_one();
+    object.UnblockThread();
 
     // Stop the timer
     timer.Stop(timer_id);
 
     // Ensure the timer fired exactly once
-    STF_ASSERT_EQ(1, object.timer_fired);
+    STF_ASSERT_EQ(1, object.TimerFired());
 
     // Check the number of pending and running timers is zero
     STF_ASSERT_EQ(0, timer.GetPendingTimerCount());
@@ -220,17 +257,16 @@ STF_TEST(Timer, SingleRecurringTimer)
     // Wait for the timer to fire
     unsigned iterations = 0;
     unsigned timer_fires = 0;
-    while(object.timer_fired < 3)
+    while(object.TimerFired() < 3)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
         // Release the blocked thread if the timer fire increased
-        if (object.timer_fired > timer_fires)
+        if (object.TimerFired() > timer_fires)
         {
             // Timer should be blocked waiting on the condition variable
             timer_fires++;
-            object.block_thread = false;
-            object.cv.notify_one();
+            object.UnblockThread();
         }
 
         // If it takes too long, force a failure
@@ -244,14 +280,13 @@ STF_TEST(Timer, SingleRecurringTimer)
     STF_ASSERT_EQ(1, timer.GetRunningTimerCount());
 
     // Release the timer thread
-    object.block_thread = false;
-    object.cv.notify_one();
+    object.UnblockThread();
 
     // Stop the timer
     timer.Stop(timer_id);
 
     // Ensure the timer fired a least 3 times
-    STF_ASSERT_GE(object.timer_fired, 3);
+    STF_ASSERT_GE(object.TimerFired(), 3);
 
     // Check the number of pending and running timers is zero
     STF_ASSERT_EQ(0, timer.GetPendingTimerCount());
@@ -289,18 +324,14 @@ STF_TEST(Timer, MultipleRecurringTimers)
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
         // Release the blocked thread if the timer fire increased
-        if (object.timer_fired > timer_fires)
+        if (object.TimerFired() > timer_fires)
         {
-            // Lock the mutex
-            std::lock_guard<std::mutex> lock(object.test_mutex);
-
-            timer_1_fires = object.timer_counts[timer_id_1];
-            timer_2_fires = object.timer_counts[timer_id_1];
+            timer_1_fires = object.GetTimerCount(timer_id_1);
+            timer_2_fires = object.GetTimerCount(timer_id_2);
 
             // Timer should be blocked waiting on "block_thread"
             timer_fires++;
-            object.block_thread = false;
-            object.cv.notify_all();
+            object.UnblockAllThreads();
         }
 
         // If it takes too long, force a failure
@@ -308,20 +339,19 @@ STF_TEST(Timer, MultipleRecurringTimers)
     }
 
     // Release the timer thread
-    object.auto_block_thread = false;
-    object.block_thread = false;
-    object.cv.notify_all();
+    object.DisableAutoBlock();
+    object.UnblockAllThreads();
 
     // Stop the timers
     timer.Stop(timer_id_1);
     timer.Stop(timer_id_2);
 
     // Ensure the timers fired a least 3 times
-    STF_ASSERT_GE(object.timer_fired, 6);
+    STF_ASSERT_GE(object.TimerFired(), 6);
 
     // Ensure each timer fired at least twice
-    STF_ASSERT_GE(object.timer_counts[timer_id_1], 5);
-    STF_ASSERT_GE(object.timer_counts[timer_id_2], 5);
+    STF_ASSERT_GE(object.GetTimerCount(timer_id_1), 5);
+    STF_ASSERT_GE(object.GetTimerCount(timer_id_2), 5);
 
     // Check the number of pending and running timers is zero
     STF_ASSERT_EQ(0, timer.GetPendingTimerCount());
@@ -337,9 +367,9 @@ STF_TEST(Timer, MultipleRecurringTimersAndLargeThreadPool)
     std::vector<TimerID> timers;
 
     // Threads should not block in this test, but should pause
-    object.auto_block_thread = false;
-    object.block_thread = false;
-    object.thread_pause_time = 1'000; // 1ms
+    object.DisableAutoBlock();
+    object.UnblockAllThreads();
+    object.SetPauseTime(1'000); // 1ms
 
     // Create a bunch of timers
     for (std::size_t i = 0; i < TimerCount; i++)
@@ -362,18 +392,12 @@ STF_TEST(Timer, MultipleRecurringTimersAndLargeThreadPool)
         // Sleep to give the timers a chance to start
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        // Lock the mutex
-        std::unique_lock<std::mutex> lock(object.test_mutex);
-
         // Ensure that all timers have been serviced at least 6 times
         unsigned count = 0;
         for (auto timer_id : timers)
         {
-            if (object.timer_counts[timer_id] >= 6) count++;
+            if (object.GetTimerCount(timer_id) >= 6) count++;
         }
-
-        // Unlock the mutex
-        lock.unlock();
 
         // Break out if count >= TimerCount
         if (count >= TimerCount) break;
@@ -386,7 +410,7 @@ STF_TEST(Timer, MultipleRecurringTimersAndLargeThreadPool)
     for (auto timer_id : timers) timer.Stop(timer_id);
 
     // It is expected that at least 3 threads would have been used
-    STF_ASSERT_GE(object.thread_ids.size(), 3);
+    STF_ASSERT_GE(object.GetThreadUsedCount(), 3);
 
     // Check the number of pending and running timers is zero
     STF_ASSERT_EQ(0, timer.GetPendingTimerCount());
@@ -402,9 +426,9 @@ STF_TEST(Timer, MultipleRecurringTimersWithThreadControl)
     ThreadControlPointer thread_control = std::make_shared<ThreadControl>();
 
     // Threads should not block in this test, but should pause
-    object.auto_block_thread = false;
-    object.block_thread = false;
-    object.thread_pause_time = 1'000; // 1ms
+    object.DisableAutoBlock();
+    object.UnblockThread();
+    object.SetPauseTime(1'000); // 1ms
 
     // Create a bunch of timers
     for (std::size_t i = 0; i < TimerCount; i++)
@@ -427,11 +451,8 @@ STF_TEST(Timer, MultipleRecurringTimersWithThreadControl)
         // Sleep to give the timers a chance to start
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-        // Lock the mutex
-        std::unique_lock<std::mutex> lock(object.test_mutex);
-
         // Ensure all timers fired at least once
-        if (object.timer_counts.size() >= TimerCount) break;
+        if (object.GetNumberOfTimers() >= TimerCount) break;
 
         // If it takes too long, force a failure
         if (++iterations > 1'000) STF_ASSERT_FALSE(true);
@@ -447,9 +468,6 @@ STF_TEST(Timer, MultipleRecurringTimersWithThreadControl)
     {
         // Sleep to give the timers a chance to start
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-        // Lock the mutex
-        std::unique_lock<std::mutex> lock(object.test_mutex);
 
         // Check that the timers have been removed
         if ((timer.GetPendingTimerCount() == 0) &&
