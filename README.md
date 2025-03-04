@@ -3,11 +3,24 @@
 Spindle is a library of utility classes useful for multi-threaded applications,
 including the following:
 
+* Spinlock
 * ThreadControl object
 * ThreadPool object
 * Timer
 
 Each will be described further in the subsequent sections.
+
+## Spinlock
+
+The Spinlock object is a drop-in replacement for std::mutex that _can_ be
+more efficient in situations where the probability of a resource conflicts
+is very low _and_ when there is a conflict the waiting thread does not have
+to wait long.
+
+One should not use the Spinlock object in cases where a lock is held for a
+"considerable" amount of time, as any waiting thread would repeatedly spin
+and consume CPU as it tries to gain access to the lock.  What "considerable"
+is depends on the application.
 
 ## ThreadControl
 

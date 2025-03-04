@@ -1,3 +1,4 @@
+add_subdirectory(test_spinlock)
 add_subdirectory(test_thread_control)
 add_subdirectory(test_thread_pool)
 add_subdirectory(test_timer)
