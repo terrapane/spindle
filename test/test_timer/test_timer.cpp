@@ -135,7 +135,7 @@ STF_TEST(Timer, DefaultConstructor)
                   timer.GetAvailableThreadCount());
 }
 
-STF_TEST(Timer, StartAndStop1)
+STF_TEST_TIMEOUT(Timer, StartAndStop1, 10)
 {
     Timer_ timer;
     TestObject object;
@@ -166,7 +166,7 @@ STF_TEST(Timer, StartAndStop1)
 
 // On Windows, this will almost certainly exercise the functions that set
 // and remove a high-resolution timer (just ensuring code coverage)
-STF_TEST(Timer, StartAndStop2)
+STF_TEST_TIMEOUT(Timer, StartAndStop2, 10)
 {
     Timer_ timer(nullptr, true); // Set the high resolution timer flag
     TestObject object;
@@ -195,7 +195,7 @@ STF_TEST(Timer, StartAndStop2)
     STF_ASSERT_EQ(0, timer.GetRunningTimerCount());
 }
 
-STF_TEST(Timer, SingleTimer)
+STF_TEST_TIMEOUT(Timer, SingleTimer, 10)
 {
     Timer_ timer;
     TestObject object;
@@ -239,7 +239,7 @@ STF_TEST(Timer, SingleTimer)
     STF_ASSERT_EQ(0, timer.GetRunningTimerCount());
 }
 
-STF_TEST(Timer, SingleRecurringTimer)
+STF_TEST_TIMEOUT(Timer, SingleRecurringTimer, 10)
 {
     Timer_ timer(nullptr, true);
     TestObject object;
@@ -293,7 +293,7 @@ STF_TEST(Timer, SingleRecurringTimer)
     STF_ASSERT_EQ(0, timer.GetRunningTimerCount());
 }
 
-STF_TEST(Timer, MultipleRecurringTimers)
+STF_TEST_TIMEOUT(Timer, MultipleRecurringTimers, 10)
 {
     Timer_ timer;
     TestObject object;
@@ -358,7 +358,7 @@ STF_TEST(Timer, MultipleRecurringTimers)
     STF_ASSERT_EQ(0, timer.GetRunningTimerCount());
 }
 
-STF_TEST(Timer, MultipleRecurringTimersAndLargeThreadPool)
+STF_TEST_TIMEOUT(Timer, MultipleRecurringTimersAndLargeThreadPool, 10)
 {
     constexpr std::size_t TimerCount{100};
     ThreadPoolPointer thread_pool = std::make_shared<ThreadPool>(10);
@@ -417,7 +417,7 @@ STF_TEST(Timer, MultipleRecurringTimersAndLargeThreadPool)
     STF_ASSERT_EQ(0, timer.GetRunningTimerCount());
 }
 
-STF_TEST(Timer, MultipleRecurringTimersWithThreadControl)
+STF_TEST_TIMEOUT(Timer, MultipleRecurringTimersWithThreadControl, 10)
 {
     constexpr std::size_t TimerCount{100};
     ThreadPoolPointer thread_pool = std::make_shared<ThreadPool>(10);

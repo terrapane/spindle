@@ -1,5 +1,10 @@
 # Change Log
 
+v1.0.4
+
+- Updated dependencies
+- Made compiler warnings stricter
+
 v1.0.3
 
 - Introduced a Spinlock class

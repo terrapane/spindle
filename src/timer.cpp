@@ -614,7 +614,7 @@ void Timer::ServiceLoop()
             if (current_timer.interval != std::chrono::nanoseconds::zero())
             {
                 // Get the current time
-                auto current_time = std::chrono::steady_clock::now();
+                current_time = std::chrono::steady_clock::now();
 
                 // Update the next time the timer should fire
                 if (current_timer.rigid_interval)
