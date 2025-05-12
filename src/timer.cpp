@@ -1,7 +1,7 @@
 /*
  *  timer.cpp
  *
- *  Copyright (C) 2024
+ *  Copyright (C) 2024, 2025
  *  Terrapane Corporation
  *  All Rights Reserved
  *
@@ -515,7 +515,7 @@ void Timer::ServiceLoop()
                 }
             }
 
-            // If timer set, wait here
+            // If waitable timer set, wait here
             if (waitable_timer_set)
             {
                 // Unlock the mutex while waiting
@@ -529,7 +529,7 @@ void Timer::ServiceLoop()
             }
 #endif
 
-            // Use a condition variable is not using a Windows waitable timer
+            // Use a condition variable if not using a Windows waitable timer
             if (!waitable_timer_set)
             {
                 // By default, wait until the timer's next_time value
@@ -840,6 +840,9 @@ bool Timer::TestHighAccuracy()
 
     // Wait for the timer test to be performed
     test_cv.wait(lock, [&]() { return ticks >= 6; });
+
+    // Unlock the test mutex
+    lock.unlock();
 
     // Stop the timer
     Stop(test_timer);
