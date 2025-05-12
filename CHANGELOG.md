@@ -4,6 +4,7 @@ v1.0.4
 
 - Updated dependencies
 - Made compiler warnings stricter
+- Fixed bug with failing to unlock mutex in TestHighAccuracy()
 
 v1.0.3
 
