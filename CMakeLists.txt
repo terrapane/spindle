@@ -10,11 +10,11 @@ project(spindle
 if(PROJECT_IS_TOP_LEVEL)
     # Option to control whether tests are built
     option(spindle_BUILD_TESTS "Build Tests for the Spindle Library" ON)
-    option(spindle_BUILD_TESTS "Build Spindle Library Sample Programs" ON)
+    option(spindle_SAMPLE_PROGRAMS "Build Spindle Library Sample Programs" ON)
 else()
     # Option to control whether tests are built
     option(spindle_BUILD_TESTS "Build Tests for the Spindle Library" OFF)
-    option(spindle_BUILD_TESTS "Build Spindle Library Sample Programs" OFF)
+    option(spindle_SAMPLE_PROGRAMS "Build Spindle Library Sample Programs" OFF)
 endif()
 
 # Option to control ability to install the library
