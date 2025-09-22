@@ -1,3 +1,6 @@
+# Include standard installation directory variables
+include(GNUInstallDirs)
+
 # Threading support is required
 find_package(Threads REQUIRED)
 
@@ -13,7 +16,8 @@ target_include_directories(spindle
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
     PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
+        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 # Specify the C++ standard to observe
 set_target_properties(spindle
@@ -40,7 +44,6 @@ target_compile_options(spindle
 
 # Install target and associated include files
 if(spindle_INSTALL)
-    include(GNUInstallDirs)
     install(TARGETS spindle EXPORT spindleTargets ARCHIVE)
     install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ TYPE INCLUDE)
     install(EXPORT spindleTargets
