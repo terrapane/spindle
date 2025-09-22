@@ -28,11 +28,12 @@
 #include <thread>
 #include <chrono>
 #include <vector>
+#include <limits>
 #include <algorithm>
 #include <functional>
 #include <terra/spindle/timer.h>
 
-std::uint64_t best_error = -1;
+std::uint64_t best_error = std::numeric_limits<std::uint64_t>::max();
 std::uint64_t worst_error = 0;
 std::uint64_t total_error  = 0;
 std::vector<std::uint64_t> errors;

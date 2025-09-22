@@ -2,6 +2,7 @@
 
 v1.0.6
 
+- Resolved compiler warnings on Windows
 - CMake changes
 - Updated dependencies
 

@@ -8,6 +8,11 @@ set_target_properties(high_resolution
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF)
 
+# On Windows, we must disable the global max() function
+if(WIN32)
+    target_compile_definitions(high_resolution PRIVATE NOMINMAX)
+endif()
+
 target_compile_options(high_resolution
     PRIVATE
         $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wpedantic -Wextra -Wall>
