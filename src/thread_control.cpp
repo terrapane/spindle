@@ -122,7 +122,7 @@ bool ThreadControl::BeginWork()
 void ThreadControl::FinishWork()
 {
     // Indicate that the thread is no longer running; notify if halted on last
-    if ((--running_threads == 0) && (halted.load() == true)) NotifyThreads();
+    if ((--running_threads == 0) && halted.load()) NotifyThreads();
 }
 
 /*
@@ -164,8 +164,7 @@ void ThreadControl::Halt()
         cv.wait(lock,
                 [&]()
                 {
-                    return (running_threads.load() == 0) ||
-                           (halted.load() == false);
+                    return (running_threads.load() == 0) || !halted.load();
                 });
     }
 }
@@ -216,8 +215,7 @@ void ThreadControl::Halt(std::unique_lock<std::mutex> &foreign_lock)
         cv.wait(lock,
                 [&]()
                 {
-                    return (running_threads.load() == 0) ||
-                           (halted.load() == false);
+                    return (running_threads.load() == 0) || !halted.load();
                 });
 
         // Re-lock the mutex provided by the caller

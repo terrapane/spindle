@@ -259,7 +259,7 @@ void ThreadPool::Loop()
             // Invoke function; exceptions should handled by the called function
             entry_point();
         }
-        catch (...)
+        catch (...) // NOLINT(bugprone-empty-catch)
         {
             // Catch and ignore all exceptions; those should be handled by the
             // called function

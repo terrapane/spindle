@@ -57,6 +57,7 @@
  */
 
 #include <algorithm>
+#include <ranges>
 #include <limits>
 #include <climits>
 #include <terra/spindle/timer.h>
@@ -265,13 +266,13 @@ TimerID Timer::Start(const TimerEntryPoint &entry_point,
     // Populate the timer details structure
     TimerDetails timer_details =
     {
-        new_timer_id,
-        std::chrono::steady_clock::now() + delay,
-        interval,
-        rigid_interval,
-        entry_point,
-        thread_control ? std::move(thread_control) :
-                         std::make_shared<ThreadControl>()
+        .timer_id = new_timer_id,
+        .next_time = std::chrono::steady_clock::now() + delay,
+        .interval = interval,
+        .rigid_interval = rigid_interval,
+        .entry_point = entry_point,
+        .timer_control = thread_control ? std::move(thread_control) :
+                                          std::make_shared<ThreadControl>()
     };
 
     // Put the new timer in the pending timer list
@@ -396,12 +397,11 @@ inline void Timer::SortPendingTimers()
     // Sort the pending timer list if there is more than one element
     if (pending_list.size() > 1)
     {
-        std::sort(pending_list.begin(),
-                  pending_list.end(),
-                  [](const TimerDetails &t1, const TimerDetails &t2)
-                  {
-                      return t1.next_time < t2.next_time;
-                  });
+        std::ranges::sort(pending_list,
+                          [](const TimerDetails &t1, const TimerDetails &t2)
+                          {
+                              return t1.next_time < t2.next_time;
+                          });
     }
 }
 
@@ -593,7 +593,7 @@ void Timer::ServiceLoop()
                 // Call into the function associated with this timer
                 current_timer.entry_point(current_timer.timer_id);
             }
-            catch (...)
+            catch (...) // NOLINT(bugprone-empty-catch)
             {
                 // Nothing to do
             }
@@ -746,27 +746,22 @@ void Timer::AwakenWaitingThread()
 inline std::pair<Timer::TimerList &, Timer::TimerList::iterator>
 Timer::FindTimer(TimerID timer_id)
 {
-    // Attempt to remove the timer from the running timer list
-    auto it = std::find_if(running_list.begin(),
-                           running_list.end(),
-                           [timer_id](const TimerDetails &timer)
-                           {
-                               return timer.timer_id == timer_id;
-                           });
+    // Try to find the timer in the running list
+    auto it = std::ranges::find_if(running_list,
+                                   [timer_id](const TimerDetails &timer)
+                                   {
+                                       return timer.timer_id == timer_id;
+                                   });
 
     // If the timer was found in the running timer list, erase it
-    if (it != running_list.end())
-    {
-        return {running_list, it};
-    }
+    if (it != running_list.end()) return {running_list, it};
 
-    // Attempt to remove the timer from the pending timer list
-    it = std::find_if(pending_list.begin(),
-                      pending_list.end(),
-                      [timer_id](const TimerDetails &timer)
-                      {
-                          return timer.timer_id == timer_id;
-                      });
+    // Try to find the timer in the pending list
+    it = std::ranges::find_if(pending_list,
+                              [timer_id](const TimerDetails &timer)
+                              {
+                                  return timer.timer_id == timer_id;
+                              });
 
     return {pending_list, it};
 }

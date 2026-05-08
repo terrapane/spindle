@@ -1,5 +1,9 @@
 # Change Log
 
+v1.0.7
+
+- Addressed a few clang-tidy nits
+
 v1.0.6
 
 - Resolved compiler warnings on Windows
