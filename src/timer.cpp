@@ -470,7 +470,7 @@ void Timer::ServiceLoop()
     while (!pending_list.empty())
     {
         // By default, do not use Windows' waitable timers
-        const bool waitable_timer_set = false;
+        bool waitable_timer_set = false;
 
         // If a thread is already waiting, exit the loop
         if (waiting_thread) break;
