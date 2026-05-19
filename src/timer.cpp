@@ -1,7 +1,7 @@
 /*
  *  timer.cpp
  *
- *  Copyright (C) 2024, 2025
+ *  Copyright (C) 2024, 2025, 2026
  *  Terrapane Corporation
  *  All Rights Reserved
  *
@@ -469,9 +469,6 @@ void Timer::ServiceLoop()
     // Loop to service the pending timers list
     while (!pending_list.empty())
     {
-        // By default, do not use Windows' waitable timers
-        bool waitable_timer_set = false;
-
         // If a thread is already waiting, exit the loop
         if (waiting_thread) break;
 
@@ -486,6 +483,9 @@ void Timer::ServiceLoop()
         if (next_time > current_time)
         {
 #ifdef _WIN32
+            // By default, do not use Windows' waitable timers
+            bool waitable_timer_set = false;
+
             // Set a waitable timer
             {
                 LARGE_INTEGER wait_time{};
@@ -529,11 +529,12 @@ void Timer::ServiceLoop()
 
                 // Re-lock the mutex
                 lock.lock();
+
+                continue;
             }
 #endif
 
             // Use a condition variable if not using a Windows waitable timer
-            if (!waitable_timer_set)
             {
                 // By default, wait until the timer's next_time value
                 std::chrono::steady_clock::time_point wait_time = next_time;
