@@ -19,7 +19,11 @@
  *      None.
  */
 
+#include <cstddef>
+#include <cstdint>
+#include <mutex>
 #include <terra/spindle/thread_pool.h>
+#include <terra/spindle/thread_control.h>
 
 namespace Terra::Spindle
 {
@@ -124,7 +128,7 @@ bool ThreadPool::Invoke(const ThreadControlPointer &thread_control,
     if (!entry_point) return false;
 
     // Lock the mutex
-    std::lock_guard<std::mutex> lock(thread_pool_mutex);
+    const std::lock_guard<std::mutex> lock(thread_pool_mutex);
 
     // Put this request in the invocation deque
     invocations.emplace_back(thread_control, entry_point);
@@ -154,7 +158,7 @@ bool ThreadPool::Invoke(const ThreadControlPointer &thread_control,
 std::size_t ThreadPool::ThreadCount()
 {
     // Lock the mutex
-    std::lock_guard<std::mutex> lock(thread_pool_mutex);
+    const std::lock_guard<std::mutex> lock(thread_pool_mutex);
 
     return threads.size();
 }
@@ -178,7 +182,7 @@ std::size_t ThreadPool::ThreadCount()
 std::size_t ThreadPool::Invoked()
 {
     // Lock the mutex
-    std::lock_guard<std::mutex> lock(thread_pool_mutex);
+    const std::lock_guard<std::mutex> lock(thread_pool_mutex);
 
     return invoked;
 }
@@ -202,7 +206,7 @@ std::size_t ThreadPool::Invoked()
 std::uint64_t ThreadPool::TotalInvocations()
 {
     // Lock the mutex
-    std::lock_guard<std::mutex> lock(thread_pool_mutex);
+    const std::lock_guard<std::mutex> lock(thread_pool_mutex);
 
     return total_invocations;
 }

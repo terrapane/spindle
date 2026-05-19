@@ -34,7 +34,13 @@ class ThreadControl
 {
     public:
         ThreadControl();
+        ThreadControl(const ThreadControl &other) = delete;
+        ThreadControl(const ThreadControl &&other) = delete;
         ~ThreadControl();
+
+        ThreadControl &operator=(const ThreadControl &other) = delete;
+        ThreadControl &operator=(ThreadControl &&other) = delete;
+
         bool BeginWork();
         void FinishWork();
         void Halt();

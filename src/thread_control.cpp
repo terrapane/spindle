@@ -25,6 +25,8 @@
  *      None.
  */
 
+#include <cstddef>
+#include <mutex>
 #include <terra/spindle/thread_control.h>
 
 namespace Terra::Spindle
@@ -317,7 +319,7 @@ std::size_t ThreadControl::RunningThreads()
 inline void ThreadControl::NotifyThreads()
 {
     // Lock the ThreadControl mutex
-    std::unique_lock<std::mutex> lock(thread_control_mutex);
+    const std::unique_lock<std::mutex> lock(thread_control_mutex);
 
     // Notify any waiting threads to awaken
     cv.notify_all();

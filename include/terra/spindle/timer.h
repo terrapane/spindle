@@ -98,9 +98,14 @@ class Timer
         static constexpr double Time_Divisor{1.5};
 
     public:
-        Timer(const ThreadPoolPointer &thread_pool = {},
-              bool high_resolution = false);
+        explicit Timer(const ThreadPoolPointer &thread_pool = {},
+                       bool high_resolution = false);
+        Timer(const Timer &other) = delete;
+        Timer(Timer &&other) = delete;
         virtual ~Timer();
+
+        Timer &operator=(const Timer &other) = delete;
+        Timer &operator=(Timer &&other) = delete;
 
         TimerID Start(const TimerEntryPoint &entry_point,
                       const std::chrono::nanoseconds &delay,

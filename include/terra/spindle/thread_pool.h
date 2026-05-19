@@ -69,8 +69,13 @@ class ThreadPool
     public:
         static constexpr std::size_t Default_Thread_Count{5};
 
-        ThreadPool(std::size_t thread_count = Default_Thread_Count);
+        explicit ThreadPool(std::size_t thread_count = Default_Thread_Count);
+        ThreadPool(const ThreadPool &other) = delete;
+        ThreadPool(ThreadPool &&other) = delete;
         virtual ~ThreadPool();
+
+        ThreadPool &operator=(const ThreadPool &other) = delete;
+        ThreadPool &operator=(ThreadPool &&other) = delete;
 
         bool Invoke(const ThreadControlPointer &thread_control,
                     const ThreadEntryPoint &entry_point);

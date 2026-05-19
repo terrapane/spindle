@@ -57,11 +57,14 @@
  */
 
 #include <algorithm>
-#include <ranges>
-#include <limits>
-#include <climits>
+#include <atomic>
+#include <chrono>
+#include <utility>
+#include <memory>
+#include <mutex>
 #include <terra/spindle/timer.h>
 #include <terra/spindle/thread_control.h>
+#include <terra/spindle/thread_pool.h>
 
 namespace Terra::Spindle
 {
@@ -242,7 +245,7 @@ TimerID Timer::Start(const TimerEntryPoint &entry_point,
     TimerID iterations = 0;
 
     // Lock the mutex
-    std::lock_guard<std::mutex> lock(timer_mutex);
+    const std::lock_guard<std::mutex> lock(timer_mutex);
 
     // Determine a new timer ID
     while (true)
@@ -261,10 +264,10 @@ TimerID Timer::Start(const TimerEntryPoint &entry_point,
     };
 
     // Get this timer ID
-    TimerID new_timer_id = last_timer_id;
+    const TimerID new_timer_id = last_timer_id;
 
     // Populate the timer details structure
-    TimerDetails timer_details =
+    const TimerDetails timer_details =
     {
         .timer_id = new_timer_id,
         .next_time = std::chrono::steady_clock::now() + delay,
@@ -326,7 +329,7 @@ void Timer::Stop(TimerID timer_id)
     if (it == list.end()) return;
 
     // To stop the timer, we use the ThreadControl object
-    ThreadControlPointer timer_control = (*it).timer_control;
+    const ThreadControlPointer timer_control = (*it).timer_control;
 
     // Was the timer found on the pending list?
     if (&list == &pending_list)
@@ -467,7 +470,7 @@ void Timer::ServiceLoop()
     while (!pending_list.empty())
     {
         // By default, do not use Windows' waitable timers
-        bool waitable_timer_set = false;
+        const bool waitable_timer_set = false;
 
         // If a thread is already waiting, exit the loop
         if (waiting_thread) break;
@@ -813,7 +816,7 @@ bool Timer::TestHighAccuracy()
             }
 
             // Get the difference in time
-            std::chrono::microseconds delta =
+            const std::chrono::microseconds delta =
                 std::chrono::duration_cast<std::chrono::microseconds>(
                     current_time - last_time);
 
@@ -826,7 +829,7 @@ bool Timer::TestHighAccuracy()
             // After 6 iterations, awaken the waiting thread
             if (ticks >= 6)
             {
-                std::lock_guard<std::mutex> lock(test_mutex);
+                const std::lock_guard<std::mutex> lock(test_mutex);
                 test_cv.notify_one();
             }
         },

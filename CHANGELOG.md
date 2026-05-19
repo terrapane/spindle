@@ -2,7 +2,8 @@
 
 v1.0.7
 
-- Addressed a few clang-tidy nits
+- Addressed a clang-tidy suggestions
+- Updated dependencies
 
 v1.0.6
 
