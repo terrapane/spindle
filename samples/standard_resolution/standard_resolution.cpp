@@ -38,7 +38,8 @@ void TimerCallback([[maybe_unused]] Terra::Spindle::TimerID timer_id)
 
     std::chrono::nanoseconds delta = current_time - last_time;
 
-    std::cout << "Delta: " << (delta.count() / 1'000'000.0) << std::endl;
+    std::cout << "Delta: " << (static_cast<double>(delta.count()) / 1'000'000.0)
+              << std::endl;
 
     last_time = current_time;
 }

@@ -15,5 +15,5 @@ endif()
 
 target_compile_options(high_resolution
     PRIVATE
-        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wpedantic -Wextra -Wall>
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wpedantic -Wextra -Wall -Wconversion -Wshadow>
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)

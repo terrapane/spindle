@@ -54,16 +54,17 @@ void TimerCallback([[maybe_unused]] Terra::Spindle::TimerID timer_id)
 
     std::chrono::nanoseconds delta = current_time - last_time;
 
-    std::cout << "Delta: " << (delta.count() / 1'000'000.0) << std::endl;
+    std::cout << "Delta: " << (static_cast<double>(delta.count()) / 1'000'000.0)
+              << std::endl;
 
     std::uint64_t error;
     if (delta.count() > 10'000'000) // Expecting 10ms timers
     {
-        error = delta.count() - 10'000'000;
+        error = static_cast<std::uint64_t>(delta.count()) - 10'000'000U;
     }
     else
     {
-        error = 10'000'000 - delta.count();
+        error = 10'000'000U - static_cast<std::uint64_t>(delta.count());
     }
 
     // Record statistics
@@ -98,13 +99,16 @@ int main()
     // Show the best and worst error numbers
     if (!errors.empty())
     {
-        std::cout << "Best error: " << (best_error / 1'000'000.0) << "ms"
+        std::cout << "Best error: "
+                  << (static_cast<double>(best_error) / 1'000'000.0) << "ms"
                   << std::endl;
-        std::cout << "Worst error: " << (worst_error / 1'000'000.0) << "ms"
+        std::cout << "Worst error: "
+                  << (static_cast<double>(worst_error) / 1'000'000.0) << "ms"
                   << std::endl;
         std::cout << "Average error: "
-                  << ((total_error / errors.size()) / 1'000'000.0) << "ms"
-                  << std::endl;
+                  << (static_cast<double>(total_error / errors.size()) /
+                      1'000'000.0)
+                  << "ms" << std::endl;
 
         // Sort the times
         std::sort(errors.begin(), errors.end());
@@ -121,7 +125,8 @@ int main()
             median_error  = (left + right) / 2;
         }
 
-        std::cout << "Median error: " << (median_error / 1'000'000.0) << "ms"
+        std::cout << "Median error: "
+                  << (static_cast<double>(median_error) / 1'000'000.0) << "ms"
                   << std::endl;
     }
 }
