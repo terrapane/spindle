@@ -833,7 +833,7 @@ bool Timer::TestHighAccuracy()
             // After 6 iterations, awaken the waiting thread
             if (ticks >= 6)
             {
-                const std::lock_guard<std::mutex> lock(test_mutex);
+                const std::lock_guard<std::mutex> timer_lock(test_mutex);
                 test_cv.notify_one();
             }
         },

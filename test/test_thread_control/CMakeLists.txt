@@ -11,6 +11,8 @@ set_target_properties(test_thread_control
         CXX_STANDARD_REQUIRED ON
         CXX_EXTENSIONS OFF)
 
-target_compile_options(test_thread_control PRIVATE
-    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-Wpedantic -Wextra -Wall -Wconversion -Wshadow>
-    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
+target_compile_options(test_thread_control
+    PRIVATE
+        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Wpedantic -Wextra -Wall -Werror -Wconversion -Wshadow>
+        $<$<CXX_COMPILER_ID:GNU>:-Wpedantic -Wextra -Wall -Werror -Wconversion -Wshadow=local>
+        $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>)
